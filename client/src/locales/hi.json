@@ -1,0 +1,21 @@
+{
+  "appTitle": "मनरेगा प्रदर्शन",
+  "selectDistrict": "अपना जिला चुनें",
+  "detectLocation": "मेरी स्थिति पता करें",
+  "chooseDistrict": "अपना जिला चुनें",
+  "loadingDistricts": "जिलों को लोड किया जा रहा है...",
+  "noDistricts": "कोई जिला नहीं मिला",
+  "workersHelped": "मदद किए गए मजदूर",
+  "totalWages": "कुल वेतन भुगतान",
+  "jobsCreated": "निर्मित नौकरियाँ",
+  "improving": "सुधार हो रहा है",
+  "declining": "घट रहा है",
+  "stable": "स्थिर",
+  "aboveState": "राज्य औसत से ऊपर",
+  "belowState": "राज्य औसत से नीचे",
+  "atState": "राज्य औसत के बराबर",
+  "lastUpdated": "अंतिम अद्यतन",
+  "offlineNotice": "आप ऑफ़लाइन प्रतीत होते हैं। उपलब्ध होने पर कैश्ड डेटा दिखाया जा रहा है।",
+  "refresh": "रीफ्रेश",
+  "help": "मदद"
+}
