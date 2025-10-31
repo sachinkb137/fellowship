@@ -12,7 +12,8 @@
     "dev:client": "npm run dev -w client",
     "dev:server": "npm run dev -w server",
     "build": "npm run build -w client && npm run build -w server",
-    "start": "npm run start -w server"
+    "start": "npm run start -w server",
+    "init-db": "node server/scripts/init-neon-db.js"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",

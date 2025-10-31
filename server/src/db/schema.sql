@@ -49,16 +49,5 @@ CREATE INDEX idx_monthly_stats_district_date ON monthly_stats(district_id, year_
 CREATE INDEX idx_aggregates_district_metric ON aggregates(district_id, metric_name);
 CREATE INDEX idx_districts_codes ON districts(state_code, district_code);
 
--- Trigger for updated_at
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
-CREATE TRIGGER update_monthly_stats_updated_at
-    BEFORE UPDATE ON monthly_stats
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+-- Note: Auto-update of updated_at timestamp is handled at the application level
+-- to ensure cross-platform compatibility

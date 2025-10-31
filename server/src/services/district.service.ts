@@ -38,12 +38,16 @@ export class DistrictService {
     const currentStats = await this.getCurrentStats(districtId, month);
     const trends = await this.calculateTrends(districtId);
     const stateComparison = await this.getStateComparison(districtId, district.state_code);
+    const timeSeries = await this.getTimeSeries(districtId, 12);
+    const comparisons = this.generateComparisons(currentStats, stateComparison);
 
     const summary: DistrictSummary = {
       district,
       currentStats,
       trends,
-      stateComparison
+      stateComparison,
+      timeSeries,
+      comparisons
     };
 
     await redisClient?.setex(cacheKey, CACHE_TTL, JSON.stringify(summary));
@@ -134,6 +138,18 @@ export class DistrictService {
     };
   }
 
+  async getDistrictHistory(districtId: number, months: number = 12): Promise<MonthlyStat[]> {
+    const query = `
+      SELECT * FROM monthly_stats
+      WHERE district_id = $1
+      ORDER BY year_month DESC
+      LIMIT $2
+    `;
+    
+    const result = await Database.query(query, [districtId, months]);
+    return result.rows.reverse();
+  }
+
   /**
    * Find nearest district by latitude/longitude using simple Haversine distance in JS.
    */
@@ -183,5 +199,47 @@ export class DistrictService {
     
     if (Math.abs(change) < 5) return 'stable';
     return change > 0 ? 'up' : 'down';
+  }
+
+  private async getTimeSeries(districtId: number, months: number = 12) {
+    const query = `
+      SELECT 
+        TO_CHAR(year_month, 'YYYY-MM') as date,
+        workers_count,
+        total_wages,
+        jobs_created
+      FROM monthly_stats
+      WHERE district_id = $1
+      ORDER BY year_month DESC
+      LIMIT $2
+    `;
+
+    const result = await Database.query(query, [districtId, months]);
+    return result.rows.reverse();
+  }
+
+  private generateComparisons(
+    currentStats: MonthlyStat | undefined,
+    stateComparison: any
+  ): Array<{ label: string; value: string | number; note?: string }> {
+    if (!currentStats) return [];
+
+    return [
+      {
+        label: '👥 Workers vs State Avg',
+        value: stateComparison.workers === 'above' ? '↑ Above' : stateComparison.workers === 'below' ? '↓ Below' : '→ Equal',
+        note: 'State Average'
+      },
+      {
+        label: '💰 Wages vs State Avg',
+        value: stateComparison.wages === 'above' ? '↑ Above' : stateComparison.wages === 'below' ? '↓ Below' : '→ Equal',
+        note: 'State Average'
+      },
+      {
+        label: '🛠 Jobs vs State Avg',
+        value: stateComparison.jobs === 'above' ? '↑ Above' : stateComparison.jobs === 'below' ? '↓ Below' : '→ Equal',
+        note: 'State Average'
+      }
+    ];
   }
 }

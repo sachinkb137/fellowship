@@ -1,82 +1,64 @@
-import React, { useState, useEffect } from 'react';
-import { IconButton, Tooltip } from '@mui/material';
-import MicIcon from '@mui/icons-material/Mic';
-import MicOffIcon from '@mui/icons-material/MicOff';
-import VolumeUpIcon from '@mui/icons-material/VolumeUp';
-import VolumeOffIcon from '@mui/icons-material/VolumeOff';
+import React, { useEffect, useState } from "react";
+import { IconButton, Tooltip } from "@mui/material";
+import MicIcon from "@mui/icons-material/Mic";
+import MicOffIcon from "@mui/icons-material/MicOff";
+import VolumeUpIcon from "@mui/icons-material/VolumeUp";
+import VolumeOffIcon from "@mui/icons-material/VolumeOff";
+import { useTranslation } from "react-i18next";
 
 interface VoiceControlProps {
   text: string;
   onCommand?: (command: string) => void;
+  lang?: string;
 }
 
-export const VoiceControl: React.FC<VoiceControlProps> = ({ text, onCommand }) => {
-  const [isListening, setIsListening] = useState(false);
+export const VoiceControl: React.FC<VoiceControlProps> = ({
+  text,
+  onCommand,
+  lang = "hi-IN",
+}) => {
+  const { t } = useTranslation();
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [synthesis, setSynthesis] = useState<SpeechSynthesis | null>(null);
+  const [isListening, setIsListening] = useState(false);
   const [recognition, setRecognition] = useState<any>(null);
 
   useEffect(() => {
-    // Initialize speech synthesis
-    if (window.speechSynthesis) {
-      setSynthesis(window.speechSynthesis);
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (SpeechRecognition) {
+      const rec = new SpeechRecognition();
+      rec.lang = lang;
+      rec.continuous = false;
+      rec.interimResults = false;
+      rec.maxAlternatives = 1;
+
+      rec.onresult = (e: any) => {
+        const command = e.results[0][0].transcript;
+        if (onCommand) onCommand(command);
+      };
+
+      rec.onerror = () => setIsListening(false);
+      rec.onend = () => setIsListening(false);
+      setRecognition(rec);
     }
+  }, [lang, onCommand]);
 
-    // Initialize speech recognition
-    if ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition) {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      const recognitionInstance = new SpeechRecognition();
-      recognitionInstance.continuous = false;
-      recognitionInstance.lang = 'hi-IN'; // Set to Hindi, can be made configurable
-      recognitionInstance.interimResults = false;
-
-      recognitionInstance.onresult = (event: any) => {
-        const command = event.results[0][0].transcript;
-        if (onCommand) {
-          onCommand(command);
-        }
-      };
-
-      recognitionInstance.onerror = (event: any) => {
-        console.error('Speech recognition error:', event.error);
-        setIsListening(false);
-      };
-
-      recognitionInstance.onend = () => {
-        setIsListening(false);
-      };
-
-      setRecognition(recognitionInstance);
-    }
-
-    return () => {
-      if (synthesis) {
-        synthesis.cancel();
-      }
-      if (recognition) {
-        recognition.abort();
-      }
-    };
-  }, []);
-
-  const toggleSpeech = () => {
-    if (!synthesis) return;
-
+  const toggleSpeak = () => {
     if (isSpeaking) {
-      synthesis.cancel();
+      window.speechSynthesis.cancel();
       setIsSpeaking(false);
-    } else {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'hi-IN'; // Set to Hindi, can be made configurable
-      utterance.onend = () => setIsSpeaking(false);
-      synthesis.speak(utterance);
-      setIsSpeaking(true);
+      return;
     }
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = lang;
+    u.onend = () => setIsSpeaking(false);
+    window.speechSynthesis.speak(u);
+    setIsSpeaking(true);
   };
 
-  const toggleListening = () => {
+  const toggleListen = () => {
     if (!recognition) return;
-
     if (isListening) {
       recognition.stop();
       setIsListening(false);
@@ -88,14 +70,14 @@ export const VoiceControl: React.FC<VoiceControlProps> = ({ text, onCommand }) =
 
   return (
     <>
-      <Tooltip title={isSpeaking ? 'Stop Speaking' : 'Read Aloud'}>
-        <IconButton onClick={toggleSpeech} color={isSpeaking ? 'primary' : 'default'}>
+      <Tooltip title={isSpeaking ? t('stopSpeaking') : t('readAloud')}>
+        <IconButton onClick={toggleSpeak} color={isSpeaking ? "primary" : "default"}>
           {isSpeaking ? <VolumeUpIcon /> : <VolumeOffIcon />}
         </IconButton>
       </Tooltip>
 
-      <Tooltip title={isListening ? 'Stop Listening' : 'Start Voice Command'}>
-        <IconButton onClick={toggleListening} color={isListening ? 'primary' : 'default'}>
+      <Tooltip title={isListening ? t('stopListening') : t('voiceCommand')}>
+        <IconButton onClick={toggleListen} color={isListening ? "primary" : "default"}>
           {isListening ? <MicIcon /> : <MicOffIcon />}
         </IconButton>
       </Tooltip>

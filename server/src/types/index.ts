@@ -42,4 +42,15 @@ export interface DistrictSummary {
     wages: 'above' | 'below' | 'equal';
     jobs: 'above' | 'below' | 'equal';
   };
+  timeSeries?: Array<{
+    date: string;
+    workers_count: number;
+    total_wages: number;
+    jobs_created: number;
+  }>;
+  comparisons?: Array<{
+    label: string;
+    value: string | number;
+    note?: string;
+  }>;
 }

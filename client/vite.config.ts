@@ -4,7 +4,9 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
   plugins: [
-    react(),
+    react({
+      jsxImportSource: '@emotion/react',
+    }),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'robots.txt', 'icons/*.png'],
@@ -54,5 +56,30 @@ export default defineConfig({
         changeOrigin: true
       }
     }
+  },
+  build: {
+    target: 'esnext',
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+      },
+      output: {
+        comments: false,
+      },
+    },
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          if (id.includes('node_modules/react')) return 'vendor-react';
+          if (id.includes('node_modules/@mui/material')) return 'vendor-mui';
+          if (id.includes('node_modules/recharts')) return 'vendor-charts';
+          if (id.includes('node_modules/react-query')) return 'vendor-query';
+          if (id.includes('node_modules/i18next')) return 'vendor-i18n';
+        }
+      }
+    },
+    chunkSizeWarningLimit: 2000,
   }
 });
