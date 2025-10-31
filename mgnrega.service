@@ -1,0 +1,38 @@
+[Unit]
+Description=MGNREGA Performance Tracker - Docker Compose Application
+Documentation=file:///home/user/mgnrega/DEPLOYMENT_README.md
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=exec
+User=user
+WorkingDirectory=/home/user/mgnrega
+EnvironmentFiles=/home/user/mgnrega/.env.production
+
+# Start service
+ExecStartPre=/usr/bin/docker compose -f docker-compose.yml down
+ExecStart=/usr/bin/docker compose -f docker-compose.yml up
+
+# Stop service
+ExecStop=/usr/bin/docker compose -f docker-compose.yml down
+
+# Restart policy
+Restart=on-failure
+RestartSec=30s
+
+# Resource limits (optional)
+MemoryLimit=4G
+CPUQuota=80%
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mgnrega-tracker
+
+# Security options
+PrivateTmp=yes
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target

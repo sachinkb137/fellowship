@@ -1,0 +1,33 @@
+[Unit]
+Description=MGNREGA Performance Tracker - Health Monitor
+Documentation=file:///home/user/mgnrega/monitor.sh
+After=mgnrega.service
+Requires=mgnrega.service
+
+[Service]
+Type=simple
+User=user
+WorkingDirectory=/home/user/mgnrega
+EnvironmentFiles=/home/user/mgnrega/.env.production
+
+# Export alert email if set
+Environment="ALERT_EMAIL=${ALERT_EMAIL}"
+
+# Start monitoring
+ExecStart=/bin/bash -c 'exec /home/user/mgnrega/monitor.sh'
+
+# Restart on failure
+Restart=always
+RestartSec=10s
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mgnrega-monitor
+
+# Security
+PrivateTmp=yes
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target
