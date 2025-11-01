@@ -37,7 +37,7 @@ export const DistrictSelector: React.FC<Props> = ({ onSelect, compact = false })
     setError(null);
     try {
       // try fetching with retries
-      const res = await fetchWithRetry("/api/v1/districts", {}, 3, 300);
+      const res = await fetchWithRetry("/api/districts", {}, 3, 300);
       const data = await res.json();
       setDistricts(data);
       setFiltered(data);
@@ -93,7 +93,7 @@ export const DistrictSelector: React.FC<Props> = ({ onSelect, compact = false })
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         try {
-          const url = `/api/v1/districts/nearby?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`;
+          const url = `/api/districts/nearby?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`;
           const res = await fetchWithRetry(url, {}, 3, 300);
           const district = await res.json();
           if (district && district.id) {

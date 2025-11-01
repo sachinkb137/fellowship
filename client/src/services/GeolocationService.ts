@@ -79,7 +79,7 @@ export class GeolocationService {
     try {
       const coords = await this.getCurrentPosition();
       const response = await fetchWithRetry(
-        `/api/v1/districts/nearby?lat=${coords.latitude}&lon=${coords.longitude}`,
+        `/api/districts/nearby?lat=${coords.latitude}&lon=${coords.longitude}`,
         {},
         3,
         300
@@ -102,7 +102,7 @@ export class GeolocationService {
     try {
       const coords = await this.getCurrentPosition();
       const response = await fetchWithRetry(
-        `/api/v1/districts/nearby-multiple?lat=${coords.latitude}&lon=${coords.longitude}&radius=${radiusKm}`,
+        `/api/districts/nearby-multiple?lat=${coords.latitude}&lon=${coords.longitude}&radius=${radiusKm}`,
         {},
         3,
         300

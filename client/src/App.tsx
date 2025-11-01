@@ -60,7 +60,7 @@ function AppInner() {
     async () => {
       if (!selectedDistrict) return null;
       const res = await fetchWithRetry(
-        `${API_BASE_URL}/api/v1/districts/${selectedDistrict.id}/summary`
+        `/api/districts/${selectedDistrict.id}/summary`
       );
       return res.json();
     },
