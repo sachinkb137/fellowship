@@ -65,12 +65,13 @@ export default defineConfig({
   optimizeDeps: {
     include: ['react', 'react-dom', 'recharts'],
     esbuildOptions: {
-      target: 'esnext',
+      target: 'es2020', // ✅ lower target for better compatibility
       keepNames: true, // ✅ prevents const/func name mangling
     },
   },
 
   esbuild: {
+    target: 'es2020', // ✅ lower target for better compatibility
     jsx: 'automatic',
     keepNames: true, // ✅ ensures stable component names
   },
@@ -98,7 +99,7 @@ export default defineConfig({
         manualChunks(id) {
           if (id.includes('node_modules/react')) return 'vendor-react';
           if (id.includes('node_modules/@mui/material')) return 'vendor-mui';
-          if (id.includes('node_modules/recharts')) return 'vendor-charts';
+          // if (id.includes('node_modules/recharts')) return 'vendor-charts'; // ✅ removed recharts chunking to fix Layer.js error
           if (id.includes('node_modules/react-query')) return 'vendor-query';
           if (id.includes('node_modules/i18next')) return 'vendor-i18n';
         },
