@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { ThemeProvider } from "@mui/material/styles";
 import {
   Box,
@@ -38,6 +38,12 @@ import LocationOnIcon from "@mui/icons-material/LocationOn";
 
 const queryClient = new QueryClient();
 
+// ✅ Use the global API URL set in vite.config.ts
+const API_BASE_URL =
+  typeof __API_URL__ !== "undefined"
+    ? __API_URL__
+    : "http://localhost:3000";
+
 function AppInner() {
   const { t, i18n } = useTranslation();
   const [selectedDistrict, setSelectedDistrict] = useState<District | null>(null);
@@ -48,11 +54,14 @@ function AppInner() {
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
 
+  // ✅ Data fetching with offline fallback
   const summaryQuery = useQuery(
     ["districtSummary", selectedDistrict?.id],
     async () => {
       if (!selectedDistrict) return null;
-      const res = await fetchWithRetry(`/api/v1/districts/${selectedDistrict.id}/summary`);
+      const res = await fetchWithRetry(
+        `${API_BASE_URL}/api/v1/districts/${selectedDistrict.id}/summary`
+      );
       return res.json();
     },
     {
@@ -63,7 +72,10 @@ function AppInner() {
         setSummary(data);
         setError(null);
         try {
-          await saveSummary(`summary:${selectedDistrict?.id}`, { ts: Date.now(), data });
+          await saveSummary(`summary:${selectedDistrict?.id}`, {
+            ts: Date.now(),
+            data,
+          });
         } catch {}
       },
       onError: async () => {
@@ -77,7 +89,7 @@ function AppInner() {
     }
   );
 
-  // Geolocation auto-detect on app load
+  // ✅ Geolocation auto-detect
   useEffect(() => {
     if (geolocationAttempted || selectedDistrict) return;
 
@@ -87,15 +99,14 @@ function AppInner() {
         return;
       }
 
-      const savedPreference = localStorage.getItem('geolocation_preference');
-      if (savedPreference === 'skip') {
+      const savedPreference = localStorage.getItem("geolocation_preference");
+      if (savedPreference === "skip") {
         setGeolocationAttempted(true);
         return;
       }
 
       const permission = await geolocationService.checkPermission();
-      
-      if (permission === 'granted' || permission === 'prompt') {
+      if (permission === "granted" || permission === "prompt") {
         setShowGeolocation(true);
       }
 
@@ -105,15 +116,17 @@ function AppInner() {
     checkGeolocation();
   }, [geolocationAttempted, selectedDistrict]);
 
-  const playAudio = async (text?: string) => {
+  // ✅ Voice synthesis handler
+  const playAudio = useCallback(async (text?: string) => {
     try {
       const currentLang = i18n.language || "en";
       await SpeechService.speak(text || "Showing data", currentLang);
     } catch (error) {
       console.error("Speech error:", error);
     }
-  };
+  }, [i18n.language]);
 
+  // ✅ Location detection (manual trigger)
   const handleAutoDetect = async () => {
     setIsLoadingLocation(true);
     try {
@@ -149,10 +162,10 @@ function AppInner() {
           sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 2 }}
         >
           <Box>
-            <Typography variant="h4" fontWeight={800} sx={{ fontSize: { xs: '1.5rem', sm: '2rem' } }}>
-              🌾 {t('appTitle') || 'Our Voice'}
+            <Typography variant="h4" fontWeight={800}>
+              🌾 {t("appTitle") || "Our Voice • Our Rights"}
             </Typography>
-            <Typography variant="body2" sx={{ opacity: 0.9, fontSize: '0.95rem', fontWeight: 500 }}>
+            <Typography variant="body2" sx={{ opacity: 0.9 }}>
               MGNREGA Transparency Portal
             </Typography>
           </Box>
@@ -162,7 +175,7 @@ function AppInner() {
               <Button
                 size="large"
                 onClick={() => setSelectedDistrict(null)}
-                sx={{ color: "white", fontSize: '1rem', fontWeight: 600 }}
+                sx={{ color: "white", fontWeight: 600 }}
               >
                 Change District
               </Button>
@@ -173,6 +186,7 @@ function AppInner() {
 
       <OfflineBanner />
 
+      {/* Geolocation modal */}
       <GeolocationPrompt
         open={showGeolocation}
         onDistrictDetected={(district) => {
@@ -180,60 +194,50 @@ function AppInner() {
           setShowGeolocation(false);
         }}
         onSkip={() => {
-          localStorage.setItem('geolocation_preference', 'skip');
+          localStorage.setItem("geolocation_preference", "skip");
           setShowGeolocation(false);
         }}
       />
 
-      <Box sx={{ px: { xs: 1, sm: 2 }, py: 4 }}>
+      <Container sx={{ py: 4 }}>
         {/* Welcome Screen */}
         {!selectedDistrict && (
-          <Fade in={!selectedDistrict} timeout={500}>
+          <Fade in timeout={400}>
             <Box textAlign="center" py={6}>
-              <Typography variant="h3" mb={4} sx={{ fontSize: { xs: '3rem', sm: '4rem' }, fontWeight: 800 }}>
-                🌾 {t('appTitle') || 'MGNREGA'}
+              <Typography variant="h3" mb={3}>
+                🌾 {t("appTitle")}
               </Typography>
-              <Typography mb={6} color="text.secondary" sx={{ fontSize: { xs: '1.3rem', sm: '1.5rem' }, lineHeight: 1.8 }}>
-                {t('selectDistrict') || 'Select your district'}
+              <Typography mb={4} color="text.secondary">
+                {t("selectDistrict")}
               </Typography>
 
               {error && (
-                <Alert severity="error" sx={{ mb: 4, fontSize: '1.1rem', p: 2 }}>
+                <Alert severity="error" sx={{ mb: 3 }}>
                   {error}
                 </Alert>
               )}
 
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 3, maxWidth: "600px", mx: "auto" }}>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 3, maxWidth: 600, mx: "auto" }}>
                 <Button
                   variant="contained"
                   size="large"
-                  startIcon={<LocationOnIcon sx={{ fontSize: '2rem' }} />}
+                  startIcon={<LocationOnIcon />}
                   onClick={handleAutoDetect}
                   disabled={isLoadingLocation}
                   fullWidth
-                  sx={{ py: 3, fontSize: '1.3rem', fontWeight: 600 }}
                 >
                   {isLoadingLocation ? "🔄 Detecting..." : "🔍 Detect My Location"}
                 </Button>
 
                 <DistrictSelector onSelect={setSelectedDistrict} />
               </Box>
-
-              <Paper sx={{ mt: 6, p: 4, backgroundColor: "info.lighter", textAlign: "left", borderRadius: 3 }}>
-                <Typography variant="h6" fontWeight={700} mb={2} sx={{ fontSize: '1.4rem' }}>
-                  ℹ️ What is MGNREGA?
-                </Typography>
-                <Typography variant="body1" color="text.secondary" sx={{ lineHeight: 1.8, fontSize: '1.1rem' }}>
-                  This app shows **work and money** given to village workers. You can see how many people got jobs, how much they earned, and when they will get paid.
-                </Typography>
-              </Paper>
             </Box>
           </Fade>
         )}
 
         {/* Data Display */}
         {selectedDistrict && summary && summary.currentStats && !summaryQuery.isFetching && (
-          <Fade in={!!selectedDistrict && !!summary} timeout={500}>
+          <Fade in timeout={400}>
             <Box>
               {/* District Header */}
               <Paper
@@ -246,26 +250,24 @@ function AppInner() {
                   color: "white",
                 }}
               >
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 2 }}>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                   <Box>
-                    <Typography variant="h3" fontWeight={800} mb={1} sx={{ fontSize: { xs: '2rem', sm: '2.5rem' } }}>
+                    <Typography variant="h3" fontWeight={800}>
                       {summary.district.name_en}
                     </Typography>
-                    <Typography variant="h6" sx={{ opacity: 0.95, fontSize: '1.1rem' }}>
+                    <Typography variant="h6" sx={{ opacity: 0.9 }}>
                       {summary.district.name_local || `District Code: ${summary.district.district_code}`}
                     </Typography>
                   </Box>
-
                   <Box sx={{ display: "flex", gap: 2 }}>
                     <VoiceControl
                       text={`Current MGNREGA performance for ${summary.district.name_en}`}
                     />
                     <Button
-                      size="large"
                       onClick={() => summaryQuery.refetch()}
                       disabled={summaryQuery.isFetching}
-                      sx={{ color: "white", fontSize: '1.1rem', fontWeight: 600, py: 1.5 }}
-                      startIcon={<RefreshIcon sx={{ fontSize: '1.8rem' }} />}
+                      startIcon={<RefreshIcon />}
+                      sx={{ color: "white", fontWeight: 600 }}
                     >
                       Refresh
                     </Button>
@@ -273,121 +275,59 @@ function AppInner() {
                 </Box>
               </Paper>
 
-              {/* Navigation Tabs */}
-              <NavBar activeTab={activeTab} onTabChange={(e, newValue) => setActiveTab(newValue)} />
+              {/* Navigation */}
+              <NavBar activeTab={activeTab} onTabChange={(_, val) => setActiveTab(val)} />
 
-              {/* Tab Content */}
-              <Box sx={{ mt: 4, px: { xs: 1, sm: 0 } }}>
-                {/* Metrics Tab */}
+              {/* Tabs */}
+              <Box sx={{ mt: 4 }}>
                 {activeTab === 0 && (
-                  <Box>
-                    <Grid container spacing={4} mb={4}>
-                      <Grid item xs={12}>
-                        <MetricCard
-                          title="👥 Workers Helped"
-                          value={summary.currentStats?.workers_count?.toLocaleString() || "—"}
-                          trend={summary.trends?.workers || "stable"}
-                          comparison={summary.stateComparison?.workers || "equal"}
-                          explanation="People who received work this month"
-                          onPlayAudio={() =>
-                            playAudio(
-                              `Workers helped: ${summary.currentStats?.workers_count || "not available"}`
-                            )
-                          }
-                        />
-                      </Grid>
-
-                      <Grid item xs={12}>
-                        <MetricCard
-                          title="🛠 Jobs Created"
-                          value={summary.currentStats?.jobs_created?.toLocaleString() || "—"}
-                          trend={summary.trends?.jobs || "stable"}
-                          comparison={summary.stateComparison?.jobs || "equal"}
-                          explanation="New jobs created this month"
-                          onPlayAudio={() =>
-                            playAudio(
-                              `Jobs created: ${summary.currentStats?.jobs_created || "not available"}`
-                            )
-                          }
-                        />
-                      </Grid>
-
-                      <Grid item xs={12}>
-                        <MetricCard
-                          title="💰 Wages Paid"
-                          value={`₹${summary.currentStats?.total_wages?.toLocaleString() || "—"}`}
-                          trend={summary.trends?.wages || "stable"}
-                          comparison={summary.stateComparison?.wages || "equal"}
-                          explanation="Total wages paid to workers this month"
-                          onPlayAudio={() =>
-                            playAudio(
-                              `Total wages paid: rupees ${summary.currentStats?.total_wages || "not available"}`
-                            )
-                          }
-                        />
-                      </Grid>
-
-                      <Grid item xs={12}>
-                        <MetricCard
-                          title="📊 Person Days"
-                          value={summary.currentStats?.person_days?.toLocaleString() || "—"}
-                          trend="stable"
-                          comparison="equal"
-                          explanation="Total person-days of work generated"
-                          onPlayAudio={() =>
-                            playAudio(
-                              `Person days: ${summary.currentStats?.person_days || "not available"}`
-                            )
-                          }
-                        />
-                      </Grid>
-
-                      <Grid item xs={12}>
-                        <MetricCard
-                          title="⏳ Pending Payments"
-                          value={`₹${summary.currentStats?.pending_payments?.toLocaleString() || "—"}`}
-                          trend="stable"
-                          comparison="equal"
-                          explanation="Outstanding wage payments"
-                          onPlayAudio={() =>
-                            playAudio(
-                              `Pending payments: rupees ${summary.currentStats?.pending_payments || "not available"}`
-                            )
-                          }
-                        />
-                      </Grid>
+                  <Grid container spacing={4}>
+                    <Grid item xs={12} sm={6}>
+                      <MetricCard
+                        title="👥 Workers Helped"
+                        value={summary.currentStats.workers_count?.toLocaleString() || "—"}
+                        trend={summary.trends?.workers || "stable"}
+                        comparison={summary.stateComparison?.workers || "equal"}
+                        explanation="People who received work this month"
+                        onPlayAudio={() => playAudio(`Workers helped: ${summary.currentStats.workers_count}`)}
+                      />
                     </Grid>
-                  </Box>
+
+                    <Grid item xs={12} sm={6}>
+                      <MetricCard
+                        title="🛠 Jobs Created"
+                        value={summary.currentStats.jobs_created?.toLocaleString() || "—"}
+                        trend={summary.trends?.jobs || "stable"}
+                        comparison={summary.stateComparison?.jobs || "equal"}
+                        explanation="New jobs created this month"
+                        onPlayAudio={() => playAudio(`Jobs created: ${summary.currentStats.jobs_created}`)}
+                      />
+                    </Grid>
+
+                    <Grid item xs={12}>
+                      <MetricCard
+                        title="💰 Wages Paid"
+                        value={`₹${summary.currentStats.total_wages?.toLocaleString() || "—"}`}
+                        trend={summary.trends?.wages || "stable"}
+                        comparison={summary.stateComparison?.wages || "equal"}
+                        explanation="Total wages paid to workers"
+                        onPlayAudio={() => playAudio(`Wages paid: ₹${summary.currentStats.total_wages}`)}
+                      />
+                    </Grid>
+                  </Grid>
                 )}
 
-                {/* Trends Tab */}
-                {activeTab === 1 && (
-                  <Box>
-                    <TimeSeriesChart data={summary.timeSeries || []} />
-                  </Box>
-                )}
-
-                {/* Comparison Tab */}
-                {activeTab === 2 && (
-                  <Box>
-                    <ComparativeView comparisons={summary.comparisons || []} />
-                  </Box>
-                )}
-
-                {/* Pie Charts Tab */}
-                {activeTab === 3 && (
-                  <Box>
-                    <PieChartComparison summary={summary} />
-                  </Box>
-                )}
+                {activeTab === 1 && <TimeSeriesChart data={summary.timeSeries || []} />}
+                {activeTab === 2 && <ComparativeView comparisons={summary.comparisons || []} />}
+                {activeTab === 3 && <PieChartComparison summary={summary} />}
               </Box>
             </Box>
           </Fade>
         )}
 
-        {/* Loading State */}
+        {/* Loading */}
         {summaryQuery.isFetching && (
-          <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" my={6}>
+          <Box textAlign="center" mt={6}>
             <CircularProgress size={60} />
             <Typography mt={2} color="text.secondary">
               Loading district data...
@@ -395,13 +335,13 @@ function AppInner() {
           </Box>
         )}
 
-        {/* Error State */}
+        {/* Error */}
         {error && selectedDistrict && (
           <Alert severity="warning" sx={{ mt: 2 }}>
             {error}
           </Alert>
         )}
-      </Box>
+      </Container>
 
       {/* Footer */}
       <Box
@@ -422,7 +362,6 @@ function AppInner() {
         </Typography>
       </Box>
 
-      {/* Floating Language Selector */}
       <FloatingLanguageSelector />
     </Box>
   );

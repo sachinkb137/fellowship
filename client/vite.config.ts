@@ -2,9 +2,22 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
+// Detect if we're on production (Render, etc.)
+const isProd = process.env.NODE_ENV === 'production';
+
+// Dynamically set API base URL
+const API_URL = isProd
+  ? 'https://fellowship-fnoj.onrender.com' // your deployed backend
+  : 'http://localhost:3000';
+
 export default defineConfig({
+  base: './', // ✅ prevents white screen after deployment (relative asset paths)
+
   plugins: [
-    react({ jsxImportSource: '@emotion/react' }),
+    react({
+      jsxImportSource: '@emotion/react',
+    }),
+
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'robots.txt'],
@@ -14,7 +27,14 @@ export default defineConfig({
         description: 'Track MGNREGA performance metrics for your district',
         theme_color: '#ffffff',
         background_color: '#1976d2',
-        display: 'standalone'
+        display: 'standalone',
+        icons: [
+          {
+            src: '/favicon.ico',
+            sizes: '64x64 32x32 24x24 16x16',
+            type: 'image/x-icon'
+          }
+        ]
       },
       workbox: {
         runtimeCaching: [
@@ -35,6 +55,10 @@ export default defineConfig({
     })
   ],
 
+  define: {
+    __API_URL__: JSON.stringify(API_URL) // ✅ allows easy usage in app
+  },
+
   optimizeDeps: {
     include: ['react', 'react-dom', 'recharts']
   },
@@ -43,15 +67,16 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
-        changeOrigin: true
+        target: API_URL,
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '/api/v1')
       }
     }
   },
 
   build: {
     target: 'esnext',
-    minify: 'esbuild', // ✅ safest and fastest option
+    minify: 'esbuild', // ✅ safe, fast minifier
     rollupOptions: {
       output: {
         manualChunks: (id) => {
