@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
-// Detect if we're on production (Render, etc.)
+// Detect production (Render, Vercel, etc.)
 const isProd = process.env.NODE_ENV === 'production';
 
 // Dynamically set API base URL
@@ -11,11 +11,15 @@ const API_URL = isProd
   : 'http://localhost:3000';
 
 export default defineConfig({
-  base: './', // ✅ prevents white screen after deployment (relative asset paths)
+  base: './', // ✅ prevents white screen after deployment (uses relative paths)
 
   plugins: [
     react({
       jsxImportSource: '@emotion/react',
+      // ✅ ensure React fast refresh works in prod too
+      babel: {
+        plugins: ['@emotion/babel-plugin'],
+      },
     }),
 
     VitePWA({
@@ -32,9 +36,9 @@ export default defineConfig({
           {
             src: '/favicon.ico',
             sizes: '64x64 32x32 24x24 16x16',
-            type: 'image/x-icon'
-          }
-        ]
+            type: 'image/x-icon',
+          },
+        ],
       },
       workbox: {
         runtimeCaching: [
@@ -45,22 +49,27 @@ export default defineConfig({
               cacheName: 'api-cache',
               expiration: {
                 maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24
+                maxAgeSeconds: 60 * 60 * 24, // 24 hours
               },
-              cacheableResponse: { statuses: [0, 200] }
-            }
-          }
-        ]
-      }
-    })
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
+      },
+    }),
   ],
 
   define: {
-    __API_URL__: JSON.stringify(API_URL) // ✅ allows easy usage in app
+    __API_URL__: JSON.stringify(API_URL), // ✅ globally available in your app
   },
 
   optimizeDeps: {
-    include: ['react', 'react-dom', 'recharts']
+    include: ['react', 'react-dom', 'recharts'],
+    // ✅ Avoids dependency pre-bundling issues for chart libs
+    esbuildOptions: {
+      target: 'esnext',
+      keepNames: true,
+    },
   },
 
   server: {
@@ -69,25 +78,31 @@ export default defineConfig({
       '/api': {
         target: API_URL,
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '/api/v1')
-      }
-    }
+        // ✅ automatically match your backend /api/v1 endpoints
+        rewrite: (path) => path.replace(/^\/api/, '/api/v1'),
+      },
+    },
   },
 
   build: {
     target: 'esnext',
-    minify: 'esbuild', // ✅ safe, fast minifier
+    minify: 'esbuild', // ✅ safe & compatible minifier for React + Recharts
+    sourcemap: true, // ✅ optional: helps debug production
     rollupOptions: {
       output: {
-        manualChunks: (id) => {
+        manualChunks(id) {
           if (id.includes('node_modules/react')) return 'vendor-react';
           if (id.includes('node_modules/@mui/material')) return 'vendor-mui';
           if (id.includes('node_modules/recharts')) return 'vendor-charts';
           if (id.includes('node_modules/react-query')) return 'vendor-query';
           if (id.includes('node_modules/i18next')) return 'vendor-i18n';
-        }
-      }
+        },
+      },
     },
-    chunkSizeWarningLimit: 2000
-  }
+    // ✅ Prevent variable mangling / hoisting errors
+    commonjsOptions: {
+      transformMixedEsModules: true,
+    },
+    chunkSizeWarningLimit: 2000,
+  },
 });
