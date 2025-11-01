@@ -87,7 +87,7 @@ export default defineConfig({
   },
 
   build: {
-    target: 'esnext',
+    target: 'es2020',
     minify: 'esbuild', // ✅ safe for modern React libraries
     sourcemap: true,
     commonjsOptions: {
