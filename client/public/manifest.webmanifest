@@ -1,0 +1,9 @@
+{
+  "name": "MGNREGA Performance Tracker",
+  "short_name": "MGNREGA",
+  "description": "Track MGNREGA performance in your district.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1976d2"
+}
