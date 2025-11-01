@@ -14,9 +14,7 @@ export default defineConfig({
   base: './', // ✅ ensures relative paths in deployed site
 
   plugins: [
-    react({
-      jsxImportSource: '@emotion/react',
-    }),
+    react(),
 
     VitePWA({
       registerType: 'autoUpdate',
