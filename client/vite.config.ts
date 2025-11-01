@@ -70,6 +70,10 @@ export default defineConfig({
     },
   },
 
+  commonjsOptions: {
+    transformMixedEsModules: true, // ✅ fixes Layer.js import ordering
+  },
+
   esbuild: {
     target: 'es2020', // ✅ lower target for better compatibility
     jsx: 'automatic',
