@@ -34,6 +34,11 @@ export default defineConfig({
       }
     })
   ],
+
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'recharts']
+  },
+
   server: {
     port: 5173,
     proxy: {
@@ -43,19 +48,10 @@ export default defineConfig({
       }
     }
   },
+
   build: {
     target: 'esnext',
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true,
-        keep_classnames: true,
-        keep_fnames: true
-      },
-      mangle: false,
-      output: { comments: false }
-    },
+    minify: 'esbuild', // ✅ safest and fastest option
     rollupOptions: {
       output: {
         manualChunks: (id) => {
