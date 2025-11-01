@@ -2,24 +2,25 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
-// Detect production (Render, Vercel, etc.)
+// Detect production
 const isProd = process.env.NODE_ENV === 'production';
 
 // Dynamically set API base URL
 const API_URL = isProd
-  ? 'https://fellowship-fnoj.onrender.com' // your deployed backend
+  ? 'https://fellowship-fnoj.onrender.com' // ✅ your deployed backend
   : 'http://localhost:3000';
 
 export default defineConfig({
-  base: './', // ✅ prevents white screen after deployment (uses relative paths)
+  base: './', // ✅ ensures relative paths in deployed site
 
   plugins: [
     react({
       jsxImportSource: '@emotion/react',
-      // ✅ ensure React fast refresh works in prod too
       babel: {
         plugins: ['@emotion/babel-plugin'],
       },
+      // ✅ Disable fast refresh transform for vendor chunks (prevents React double init)
+      fastRefresh: true,
     }),
 
     VitePWA({
@@ -49,7 +50,7 @@ export default defineConfig({
               cacheName: 'api-cache',
               expiration: {
                 maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24, // 24 hours
+                maxAgeSeconds: 60 * 60 * 24,
               },
               cacheableResponse: { statuses: [0, 200] },
             },
@@ -60,16 +61,20 @@ export default defineConfig({
   ],
 
   define: {
-    __API_URL__: JSON.stringify(API_URL), // ✅ globally available in your app
+    __API_URL__: JSON.stringify(API_URL),
   },
 
   optimizeDeps: {
     include: ['react', 'react-dom', 'recharts'],
-    // ✅ Avoids dependency pre-bundling issues for chart libs
     esbuildOptions: {
       target: 'esnext',
-      keepNames: true,
+      keepNames: true, // ✅ prevents const/func name mangling
     },
+  },
+
+  esbuild: {
+    jsx: 'automatic',
+    keepNames: true, // ✅ ensures stable component names
   },
 
   server: {
@@ -78,7 +83,6 @@ export default defineConfig({
       '/api': {
         target: API_URL,
         changeOrigin: true,
-        // ✅ automatically match your backend /api/v1 endpoints
         rewrite: (path) => path.replace(/^\/api/, '/api/v1'),
       },
     },
@@ -86,8 +90,11 @@ export default defineConfig({
 
   build: {
     target: 'esnext',
-    minify: 'esbuild', // ✅ safe & compatible minifier for React + Recharts
-    sourcemap: true, // ✅ optional: helps debug production
+    minify: 'esbuild', // ✅ safe for modern React libraries
+    sourcemap: true,
+    commonjsOptions: {
+      transformMixedEsModules: true, // ✅ fixes Layer.js import ordering
+    },
     rollupOptions: {
       output: {
         manualChunks(id) {
@@ -98,10 +105,6 @@ export default defineConfig({
           if (id.includes('node_modules/i18next')) return 'vendor-i18n';
         },
       },
-    },
-    // ✅ Prevent variable mangling / hoisting errors
-    commonjsOptions: {
-      transformMixedEsModules: true,
     },
     chunkSizeWarningLimit: 2000,
   },

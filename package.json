@@ -18,5 +18,8 @@
   "devDependencies": {
     "concurrently": "^8.2.2",
     "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "recharts": "^2.8.0"
   }
 }
