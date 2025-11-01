@@ -12,7 +12,7 @@ import {
   Fade,
   Paper,
 } from "@mui/material";
-import { QueryClient, QueryClientProvider, useQuery } from "react-query";
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import theme from "./theme";
 import { useTranslation } from "react-i18next";
 
@@ -55,39 +55,46 @@ function AppInner() {
   const [activeTab, setActiveTab] = useState(0);
 
   // ✅ Data fetching with offline fallback
-  const summaryQuery = useQuery(
-    ["districtSummary", selectedDistrict?.id],
-    async () => {
+  const summaryQuery = useQuery({
+    queryKey: ["districtSummary", selectedDistrict?.id],
+    queryFn: async () => {
       if (!selectedDistrict) return null;
       const res = await fetchWithRetry(
         `/api/districts/${selectedDistrict.id}/summary`
       );
       return res.json();
     },
-    {
-      enabled: !!selectedDistrict,
-      retry: 2,
-      staleTime: 1000 * 60 * 2,
-      onSuccess: async (data: DistrictSummary) => {
-        setSummary(data);
-        setError(null);
+    enabled: !!selectedDistrict,
+    retry: 2,
+    staleTime: 1000 * 60 * 2,
+  });
+
+  // Handle success and error with useEffect
+  useEffect(() => {
+    if (summaryQuery.data) {
+      setSummary(summaryQuery.data);
+      setError(null);
+      const saveData = async () => {
         try {
           await saveSummary(`summary:${selectedDistrict?.id}`, {
             ts: Date.now(),
-            data,
+            data: summaryQuery.data,
           });
         } catch {}
-      },
-      onError: async () => {
-        setError("⚠ Showing cached data (live API failed)");
+      };
+      saveData();
+    } else if (summaryQuery.error) {
+      setError("⚠ Showing cached data (live API failed)");
+      const loadCached = async () => {
         if (!selectedDistrict) return;
         try {
           const cached = await loadSummary(`summary:${selectedDistrict.id}`);
           if (cached?.data) setSummary(cached.data);
         } catch {}
-      },
+      };
+      loadCached();
     }
-  );
+  }, [summaryQuery.data, summaryQuery.error, selectedDistrict]);
 
   // ✅ Geolocation auto-detect
   useEffect(() => {
