@@ -19,8 +19,6 @@ export default defineConfig({
       babel: {
         plugins: ['@emotion/babel-plugin'],
       },
-      // ✅ Disable fast refresh transform for vendor chunks (prevents React double init)
-      fastRefresh: true,
     }),
 
     VitePWA({
